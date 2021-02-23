@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <input type="text" class="inp-text">
+    <div class="text-box"></div>
+    <script>
+        let obj={};
+        Object.defineProperty(obj,"name",{
+            set:function(newValue){
+                console.log("触发setter");
+                document.querySelector(".text-box").innerHTML=newValue;
+                document.querySelector(".inp-text").value=newValue;
+            },
+            get:function(){
+                console.log("触发getter");
+            }
+        });
+        document.querySelector('.inp-text').addEventListener("keyup",function(e){
+            obj.name=e.target.value;
+
+        },false)
+       
+    </script>
+</body>
+</html>

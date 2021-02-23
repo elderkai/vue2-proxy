@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div id="app">
+        <input type="text" v-model="school.name">
+        <div>{{school.name}}</div>
+        <div>{{school.age}}</div>
+        <ul>
+            <li>1</li>
+            <li>1</li>
+        </ul>
+    </div>
+    <script>
+        class Observer{
+            constructor(data){
+                this.observer(data);
+            }
+            observer(data){
+                if(data && typeof data=="object"){
+                    //如果是对象
+                    for(let key in data){
+                        this.defineReactive(data,key,data[key]);
+                    }
+                }
+            }
+            defineReactive(obj,key,value){
+                this.observer(value)
+                Object.defineProperty(obj,key,{
+                    get(){
+                        return value;
+                    },
+                    set:(newVal)=>{
+                        if(newVal!=value){
+                            this.observer(newVal);
+                            value=newVal;
+                           
+                        }
+                    }
+                })
+            }
+
+        }
+        class Compiler{
+            constructor(el,vm){
+                //判断el属性是不是一个元素 如果不是元素那就获取它
+                this.el=this.isElementNode(el)?el:document.querySelector(el);
+                this.vm=vm;
+              let fragment=this.node2fragment(this.el);
+              //把节点中的内容进行替换
+              //把内容再塞到页面中
+              this.compile(fragment);
+              this.el.appendChild(fragment);
+            }
+            isDirective(attrName){
+                return attrName.startsWith('v-')
+            }
+            //编译元素的
+            compileElement(node){
+                let attributes=node.attributes;//类数组
+                [...attributes].forEach(attr=>{
+                    let {name,value:expr}=attr;
+                   if(this.isDirective(name)){
+                     
+                       let [,directive]=name.split('-');
+                       CompileUtil[directive](node,expr,this.vm); 
+                   } 
+                })
+            }
+            //编译文本的
+            compileText(node){
+                let content=node.textContent;
+                if(/\{\{(.+?)\}\}/.test(content)){
+                   //找到所有文本
+                   CompileUtil['text'](node,content,this.vm);//{{xxx}}
+                }
+            }
+            //核心的编译方法
+            compile(node){//用来编译内存中的dom节点
+                let childNodes=node.childNodes;
+                [...childNodes].forEach(child=>{
+                    if(this.isElementNode(child)){
+                        this.compileElement(child);
+                        //如果是元素的话 需要把自己传进去 再去遍历子节点
+                        this.compile(child);
+                    }else{
+                        this.compileText(child);
+                    }
+                })
+            }
+     
+            node2fragment(node){
+                //创建一个文档碎片
+                let fragment=document.createDocumentFragment();
+                let firstChild;
+                //appendChild具有移动性
+                while(firstChild=node.firstChild){
+                    fragment.appendChild(firstChild);
+                }
+                return fragment
+            }
+            isElementNode(node){
+                //是不是元素节点
+                return node.nodeType===1;
+
+            }
+            
+        }
+        CompileUtil={
+                getVal(vm,expr){//vm.$data 'school.name' [school,name]
+                    return expr.split('.').reduce((data,current)=>{
+                        return data[current];
+                    },vm.$data)
+                    //reduce方法取出school.name
+                },
+                model(node,expr,vm){//node节点 expr表达式（school.name） vm当前节点(this)
+                    let fn=this.updater['modelUpdater'];
+                    let value=this.getVal(vm,expr);
+                    fn(node,value);
+                },
+                html(){
+
+                },
+                text(node,expr,vm){
+                    let fn=this.updater['textUpdater'];
+                    let content=expr.replace(/\{\{(.+?)\}\}/g,(...args)=>{
+                    
+                        return this.getVal(vm,args[1]);
+                    });
+                    fn(node,content);
+                },
+                updater:{
+                    modelUpdater(node,value){
+                        node.value=value;
+                    },
+                    htmlUpdater(){
+
+                    },
+                    textUpdater(node,value){
+                        node.textContent=value;
+                    }
+                }
+            }
+        class Vue{
+            constructor(options){
+                //this.$el $data $options
+                this.$el=options.el;
+                this.$data=options.data;
+                //这个根元素 存在 翻译模板
+                if(this.$el){
+                    new Observer(this.$data);
+                    new Compiler(this.$el,this);
+                    console.log(this.$data);
+                }
+            }
+        }
+
+    </script>
+    <script>
+        let vm=new Vue({
+            el:"#app",
+            data:{
+                school:{
+                    name:"珠峰",
+                    age:20
+                }
+            }
+        })
+    </script>
+</body>
+</html>

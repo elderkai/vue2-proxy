@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="container">
+        {{ msg }}<br>
+        <input class="inp-text" type="text" v-model="msg">
+        <div class="text-box">
+            <p class="show-text">{{ msg }}</p>
+        </div>
+    </div> 
+  <script>
+        var container = document.getElementById('container');
+    //这里我们把vue实例中的data提取出来，更加直观
+    var data = {
+        msg: 'Hello world!',
+        inpText: 'Input text'
+    };
+    var fragment = virtualDom(container, data);
+    container.appendChild(fragment);
+
+    //虚拟dom创建方法
+    function virtualDom(node, data){
+        let frag = document.createDocumentFragment();
+        let child;
+        // 遍历dom节点
+        while(child = node.firstChild){
+            compile(child, data);
+            frag.appendChild(child);
+        }
+        return frag;
+    }
+     
+    //编译规则
+    function compile(node, data){
+        let reg = /\{\{(.*)\}\}/g;
+        if(node.nodeType === 1){ // 标签
+            let attr = node.attributes;
+            for(let i = 0, len = attr.length; i < len; i++){
+                // console.log(attr[i].nodeName, attr[i].nodeValue);
+                if(attr[i].nodeName === 'v-model'){
+                    let name = attr[i].nodeValue;
+                    node.value = data[name];
+                }
+            }
+            if(node.hasChildNodes()){
+                node.childNodes.forEach((item) => {
+                    compile(item, data); // 递归
+                });
+            }
+        }
+        if(node.nodeType === 3){ // 文本节点
+            if(reg.test(node.nodeValue)){
+                let name = RegExp.$1;
+                name = name.trim();
+                node.nodeValue = data[name];
+            }
+        }
+    }
+  </script>
+</body>
+</html>
